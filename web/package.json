@@ -10,13 +10,15 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prolog": "swipl ../prolog/serve.pl"
+    "prolog": "swipl ../prolog/serve.pl",
+    "test:integration": "vitest run src/lib/pipeline.integration.test.ts"
   },
   "dependencies": {
     "next": "16.3.3",
     "postgres": "^3.4.9",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

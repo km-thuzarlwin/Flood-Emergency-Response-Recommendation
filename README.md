@@ -45,7 +45,7 @@ Next.js 16 (React 19, TypeScript) · SWI-Prolog (reasoning, over HTTP) · Postgr
 | 1 | DB schema + regional seed data (docs 2, 3) | ✅ done — migrations `001`–`004`, all DoD checks pass |
 | 2 | Prolog rule base + HTTP service (doc 4) | ✅ done — `swipl prolog/run_tests.pl` → 41/41 |
 | — | Next.js scaffold + DB / Prolog seams | ✅ ready |
-| 3 | Priority scoring, filtering, routing, reservation, API (doc 5) — gated by the Lemyethna acceptance test (doc 7) | ⬜ not started |
+| 3 | Priority scoring, filtering, routing, reservation, API (doc 5) — gated by the Lemyethna acceptance test (doc 7) | ✅ done — 33 unit tests + a gated end-to-end acceptance test; 10 API routes. Set `web/.env` `DATABASE_URL` + run `npm run test:integration` for the live end-to-end check. |
 | 4 | The 5 UI screens (doc 6) | ⬜ not started |
 | 5 | QA hardening (doc 8) | ⬜ not started |
 
