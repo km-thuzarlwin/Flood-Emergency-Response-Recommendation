@@ -82,6 +82,8 @@ export async function assignAndReserve(args: AssignmentArgs): Promise<Assignment
     const seq = last ? Number(last.case_id.slice(prefix.length)) + 1 : 1;
     const caseId = `${prefix}${String(seq).padStart(3, "0")}`;
 
+    const notes = [...unitSel.notes, ...shelterSel.notes];
+
     await tx`
       insert into flood_case (
         case_id, township_id, gauge_reading_cm, upstream_heavy_rain_days,
@@ -89,14 +91,16 @@ export async function assignAndReserve(args: AssignmentArgs): Promise<Assignment
         vulnerable_present, injured_survivors, affected_population,
         status, severity, severity_reason, gauge_percent, recommended_action,
         required_capabilities, priority_score, priority_band,
-        assigned_unit_id, assigned_shelter_id
+        assigned_unit_id, assigned_shelter_id,
+        assigned_unit_distance, assigned_shelter_distance, notes
       ) values (
         ${caseId}, ${input.township_id}, ${input.gauge_reading_cm}, ${input.upstream_heavy_rain_days},
         ${input.local_rainfall}, ${input.embankment_status}, ${input.terrain}, ${input.road_status},
         ${input.vulnerable_present}, ${input.injured_survivors}, ${input.affected_population},
         'assessed', ${assessment.severity}, ${assessment.severity_reason}, ${gaugePercent}, ${assessment.recommended_action},
         ${assessment.required_capabilities}::capability[], ${priority.score}, ${priority.band},
-        ${unitSel.id}, ${shelterSel.id}
+        ${unitSel.id}, ${shelterSel.id},
+        ${unitSel.distanceToIncident}, ${shelterSel.distanceToIncident}, ${notes}::text[]
       )
     `;
 

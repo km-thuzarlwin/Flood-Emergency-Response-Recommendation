@@ -14,6 +14,7 @@ export interface Edge {
 }
 
 export type DistanceMap = Map<string, number>;
+export type PredecessorMap = Map<string, string | null>;
 
 /** Adjacency list from passable edges only, expanded to both directions. */
 export function buildGraph(edges: Edge[]): Map<string, Array<{ to: string; w: number }>> {
@@ -39,9 +40,19 @@ export function dijkstra(
   graph: Map<string, Array<{ to: string; w: number }>>,
   source: string,
 ): DistanceMap | null {
+  const r = dijkstraFull(graph, source);
+  return r ? r.dist : null;
+}
+
+/** As `dijkstra`, but also returns predecessors so paths can be reconstructed. */
+export function dijkstraFull(
+  graph: Map<string, Array<{ to: string; w: number }>>,
+  source: string,
+): { dist: DistanceMap; prev: PredecessorMap } | null {
   if (!graph.has(source)) return null;
 
   const dist: DistanceMap = new Map([[source, 0]]);
+  const prev: PredecessorMap = new Map([[source, null]]);
   const visited = new Set<string>();
 
   for (;;) {
@@ -58,8 +69,23 @@ export function dijkstra(
 
     for (const { to, w } of graph.get(u) ?? []) {
       const nd = best + w;
-      if (nd < (dist.get(to) ?? Infinity)) dist.set(to, nd);
+      if (nd < (dist.get(to) ?? Infinity)) {
+        dist.set(to, nd);
+        prev.set(to, u);
+      }
     }
   }
-  return dist;
+  return { dist, prev };
+}
+
+/** Township id path from the dijkstra source to `target`, inclusive; null if unreachable. */
+export function reconstructPath(prev: PredecessorMap, target: string): string[] | null {
+  if (!prev.has(target)) return null;
+  const path: string[] = [];
+  let cur: string | null = target;
+  while (cur !== null) {
+    path.unshift(cur);
+    cur = prev.get(cur) ?? null;
+  }
+  return path;
 }

@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
+/*
+  FERRS UI — one committed light, high-contrast palette. No dark mode:
+  the primary user is on a mid-range Android phone in direct sunlight (doc 6 / NFR-4).
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #eef0f2;
+  --surface: #ffffff;
+  --surface-2: #f6f7f8;
+  --foreground: #16181d;
+  --muted: #4b5563;
+  --border: #c9ced6;
+  --accent: #1d4ed8;
+  --accent-strong: #1e40af;
+  --accent-fg: #ffffff;
+
+  /* severity — bold, saturated, distinct hues; always shown with a text label too */
+  --sev-severe: #b3160f;
+  --sev-high: #c2410c;
+  --sev-moderate: #a15c07;
+  --sev-low: #15803d;
+  --sev-fg: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-sev-severe: var(--sev-severe);
+  --color-sev-high: var(--sev-high);
+  --color-sev-moderate: var(--sev-moderate);
+  --color-sev-low: var(--sev-low);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+/* Comfortable tap targets for outdoor field use (doc 6). */
+button,
+select,
+a[data-btn],
+input[type="number"],
+input[type="text"] {
+  min-height: 48px;
+}
+
+/* severity chip backgrounds */
+.sev-severe {
+  background: var(--sev-severe);
+  color: var(--sev-fg);
+}
+.sev-high {
+  background: var(--sev-high);
+  color: var(--sev-fg);
+}
+.sev-moderate {
+  background: var(--sev-moderate);
+  color: var(--sev-fg);
+}
+.sev-low {
+  background: var(--sev-low);
+  color: var(--sev-fg);
+}
+
+/* severity text/ring for map markers and list rows */
+.sev-ring-severe {
+  border-color: var(--sev-severe);
+}
+.sev-ring-high {
+  border-color: var(--sev-high);
+}
+.sev-ring-moderate {
+  border-color: var(--sev-moderate);
+}
+.sev-ring-low {
+  border-color: var(--sev-low);
 }

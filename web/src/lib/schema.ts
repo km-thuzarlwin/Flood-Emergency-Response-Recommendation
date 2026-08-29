@@ -84,4 +84,7 @@ export interface FloodCase {
   priority_band: PriorityBand | null;
   assigned_unit_id: string | null;
   assigned_shelter_id: string | null;
+  assigned_unit_distance: number | null;
+  assigned_shelter_distance: number | null;
+  notes: string[];
 }
