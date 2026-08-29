@@ -1,0 +1,36 @@
+# claude code — local, per-machine settings (the shared config is .mcp.json / .claude/settings.json)
+.claude/settings.local.json
+
+# dependencies
+**/node_modules/
+
+# next.js
+web/.next/
+web/out/
+web/build/
+web/next-env.d.ts
+
+# env / secrets
+.env
+.env*.local
+web/.env
+web/.env*.local
+
+# prisma generated client
+web/src/generated/
+web/node_modules/.prisma/
+
+# logs / os / editor
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+*.swp
+
+# prolog
+prolog/*.log
+prolog/.serve.log
+
+# build/test artifacts
+coverage/
+*.tsbuildinfo
