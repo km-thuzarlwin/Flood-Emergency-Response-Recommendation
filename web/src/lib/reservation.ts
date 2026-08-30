@@ -13,6 +13,7 @@ import { selectUnit, selectShelter, type IncidentContext, type UnitRow, type She
 import type { PriorityResult } from "./domain/priority";
 import type { PrologAssessment } from "./prolog";
 import type { FloodCaseInput } from "./validation";
+import type { ReportDetailJson } from "./reportInput";
 
 /** One global key — case creation is low-QPS (a township coordinator tool). */
 const CASE_CREATION_LOCK = 4815162342;
@@ -23,6 +24,8 @@ export interface AssignmentArgs {
   assessment: PrologAssessment;
   priority: PriorityResult;
   gaugePercent: number | null;
+  reportDetail: ReportDetailJson;
+  assumptions: string[];
 }
 
 export interface AssignmentResult {
@@ -32,7 +35,7 @@ export interface AssignmentResult {
 }
 
 export async function assignAndReserve(args: AssignmentArgs): Promise<AssignmentResult> {
-  const { input, incident, assessment, priority, gaugePercent } = args;
+  const { input, incident, assessment, priority, gaugePercent, reportDetail, assumptions } = args;
 
   return sql.begin(async (tx): Promise<AssignmentResult> => {
     await tx`select pg_advisory_xact_lock(${CASE_CREATION_LOCK})`;
@@ -92,7 +95,8 @@ export async function assignAndReserve(args: AssignmentArgs): Promise<Assignment
         status, severity, severity_reason, gauge_percent, recommended_action,
         required_capabilities, priority_score, priority_band,
         assigned_unit_id, assigned_shelter_id,
-        assigned_unit_distance, assigned_shelter_distance, notes
+        assigned_unit_distance, assigned_shelter_distance, notes,
+        report_detail, assumptions
       ) values (
         ${caseId}, ${input.township_id}, ${input.gauge_reading_cm}, ${input.upstream_heavy_rain_days},
         ${input.local_rainfall}, ${input.embankment_status}, ${input.terrain}, ${input.road_status},
@@ -100,7 +104,8 @@ export async function assignAndReserve(args: AssignmentArgs): Promise<Assignment
         'assessed', ${assessment.severity}, ${assessment.severity_reason}, ${gaugePercent}, ${assessment.recommended_action},
         ${assessment.required_capabilities}::capability[], ${priority.score}, ${priority.band},
         ${unitSel.id}, ${shelterSel.id},
-        ${unitSel.distanceToIncident}, ${shelterSel.distanceToIncident}, ${notes}::text[]
+        ${unitSel.distanceToIncident}, ${shelterSel.distanceToIncident}, ${notes}::text[],
+        ${tx.json(reportDetail)}, ${assumptions}::text[]
       )
     `;
 

@@ -4,54 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiClientError } from "@/lib/api";
 import type { GaugeStation, Township } from "@/lib/schema";
-import type { FloodCaseInput } from "@/lib/validation";
+import type { ReportFormInput } from "@/lib/reportInput";
+import { RIVER_LEVELS, PEOPLE_RANGES } from "@/lib/reportInput";
+import { Field, TapGrid, SearchSelect, StatusRamp, MultiTiles } from "./reportControls";
 
-/** Qualitative water level → approx % of the station danger mark (doc 6). */
-const WATER_LEVELS = [
-  { key: "well_below", label: "Well below the mark", pct: 0.6 },
-  { key: "near", label: "Near the mark", pct: 0.95 },
-  { key: "above", label: "Above the mark", pct: 1.08 },
-  { key: "well_above", label: "Well above the mark", pct: 1.25 },
-] as const;
-
-type WaterKey = (typeof WATER_LEVELS)[number]["key"];
-
-function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-  columns = 2,
-}: {
-  label: string;
-  value: T | null;
-  options: ReadonlyArray<{ key: T; label: string }>;
-  onChange: (v: T) => void;
-  columns?: number;
-}) {
-  return (
-    <fieldset className="space-y-2">
-      <legend className="font-semibold">{label}</legend>
-      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0,1fr))` }}>
-        {options.map((o) => (
-          <button
-            key={o.key}
-            type="button"
-            aria-pressed={value === o.key}
-            onClick={() => onChange(o.key)}
-            className={`rounded-lg border-2 px-3 py-3 text-left font-semibold transition ${
-              value === o.key
-                ? "border-accent bg-accent text-white"
-                : "border-border bg-surface hover:border-accent"
-            }`}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
+type Rf = ReportFormInput;
 
 export function FloodReportForm() {
   const router = useRouter();
@@ -59,18 +16,18 @@ export function FloodReportForm() {
   const [gauges, setGauges] = useState<GaugeStation[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [townshipId, setTownshipId] = useState("");
-  const [water, setWater] = useState<WaterKey | null>("near");
-  const [gaugeCm, setGaugeCm] = useState<string>("");
-  const [useExactCm, setUseExactCm] = useState(false);
-  const [rainDays, setRainDays] = useState<number>(0);
-  const [rainfall, setRainfall] = useState<FloodCaseInput["local_rainfall"] | null>("moderate");
-  const [embankment, setEmbankment] = useState<FloodCaseInput["embankment_status"] | null>("intact");
-  const [terrain, setTerrain] = useState<FloodCaseInput["terrain"] | null>(null);
-  const [road, setRoad] = useState<FloodCaseInput["road_status"] | null>("open");
-  const [vulnerable, setVulnerable] = useState<boolean | null>(null);
-  const [injured, setInjured] = useState<boolean | null>(null);
-  const [population, setPopulation] = useState<string>("");
+  const [townshipId, setTownshipId] = useState<string | null>(null);
+  const [riverLevel, setRiverLevel] = useState<Rf["river_level"]>(null);
+  const [exactCm, setExactCm] = useState<string>("");
+  const [useExact, setUseExact] = useState(false);
+  const [embankment, setEmbankment] = useState<Rf["embankment"] | null>(null);
+  const [rainfall, setRainfall] = useState<Rf["rainfall"] | null>(null);
+  const [upstream, setUpstream] = useState<Rf["upstream_rain"] | null>(null);
+  const [landform, setLandform] = useState<Rf["landform"] | null>(null);
+  const [road, setRoad] = useState<Rf["road"] | null>(null);
+  const [groups, setGroups] = useState<Rf["vulnerable_groups"]>([]);
+  const [injured, setInjured] = useState<Rf["injured"] | null>(null);
+  const [people, setPeople] = useState<Rf["people_affected"] | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -78,7 +35,7 @@ export function FloodReportForm() {
   useEffect(() => {
     Promise.all([api.townships(), api.gauges()])
       .then(([t, g]) => {
-        setTownships(t.sort((a, b) => a.display_name.localeCompare(b.display_name)));
+        setTownships([...t].sort((a, b) => a.display_name.localeCompare(b.display_name)));
         setGauges(g);
       })
       .catch((e) => setLoadError(e instanceof Error ? e.message : "Could not load form data"));
@@ -89,54 +46,36 @@ export function FloodReportForm() {
     if (!township?.gauge_station_id || !gauges) return null;
     return gauges.find((g) => g.id === township.gauge_station_id)?.danger_level_cm ?? null;
   }, [township, gauges]);
-
   const hasGauge = danger !== null;
 
-  const gaugeReadingCm = useMemo(() => {
-    if (!hasGauge) return 0; // coastal / no station — API still needs a value
-    if (useExactCm) return Number(gaugeCm) || 0;
-    const lvl = WATER_LEVELS.find((w) => w.key === water);
-    return lvl ? Math.round(danger! * lvl.pct) : 0;
-  }, [hasGauge, useExactCm, gaugeCm, water, danger]);
-
+  const riverAnswered = !hasGauge || (useExact ? exactCm !== "" : riverLevel !== null);
   const ready =
-    townshipId &&
-    rainfall &&
-    embankment &&
-    terrain &&
-    road &&
-    vulnerable !== null &&
-    injured !== null &&
-    population !== "" &&
-    (hasGauge ? (useExactCm ? gaugeCm !== "" : water !== null) : true);
+    !!townshipId && riverAnswered && !!embankment && !!rainfall && !!upstream && !!landform && !!road && !!injured && !!people;
 
   async function submit() {
-    if (!ready) return;
+    if (!ready || !townshipId) return;
     setSubmitting(true);
     setSubmitError(null);
-    const input: FloodCaseInput = {
+    const form: ReportFormInput = {
       township_id: townshipId,
-      gauge_reading_cm: gaugeReadingCm,
-      upstream_heavy_rain_days: rainDays,
-      local_rainfall: rainfall!,
-      embankment_status: embankment!,
-      terrain: terrain!,
-      road_status: road!,
-      vulnerable_present: vulnerable!,
-      injured_survivors: injured!,
-      affected_population: Number(population) || 0,
+      river_level: useExact ? null : riverLevel,
+      gauge_reading_cm: useExact && exactCm !== "" ? Number(exactCm) : null,
+      embankment: embankment!,
+      rainfall: rainfall!,
+      upstream_rain: upstream!,
+      landform: landform!,
+      road: road!,
+      vulnerable_groups: groups,
+      injured: injured!,
+      people_affected: people!,
     };
     try {
-      const res = await api.submitReport(input);
+      const res = await api.submitReport(form);
       router.push(`/results/${encodeURIComponent(res.case_id)}`);
     } catch (e) {
-      const msg =
-        e instanceof ApiClientError
-          ? e.message
-          : e instanceof Error
-            ? e.message
-            : "Something went wrong submitting the report.";
-      setSubmitError(msg);
+      setSubmitError(
+        e instanceof ApiClientError || e instanceof Error ? e.message : "Something went wrong.",
+      );
       setSubmitting(false);
     }
   }
@@ -152,165 +91,176 @@ export function FloodReportForm() {
 
   return (
     <form
-      className="space-y-6"
+      className="space-y-8"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
     >
-      <div className="space-y-2">
-        <label htmlFor="township" className="font-semibold">
-          Which township?
-        </label>
-        <select
-          id="township"
+      <Field label="Select the affected township">
+        <SearchSelect
           value={townshipId}
-          onChange={(e) => setTownshipId(e.target.value)}
-          className="w-full rounded-lg border-2 border-border bg-surface px-3 py-3 font-semibold"
-        >
-          <option value="">Choose a township…</option>
-          {townships.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.display_name}
-              {t.is_base ? " (base)" : ""}
-            </option>
-          ))}
-        </select>
-      </div>
+          placeholder="Choose a township…"
+          onChange={setTownshipId}
+          options={townships.map((t) => ({ value: t.id, label: t.display_name + (t.is_base ? " (base)" : "") }))}
+        />
+      </Field>
 
       {township && !hasGauge && (
         <p className="rounded-lg bg-surface-2 p-3 text-sm text-muted">
-          This township is on the coast. Its main flood risk is cyclone storm surge, which this
-          version does not assess. A river-gauge answer isn&apos;t needed — but if the embankment is
-          breached the system will still flag it as severe.
+          This township is on the coast — its main flood risk is cyclone storm surge, which this
+          version doesn&apos;t assess. No river answer is needed; if the embankment is breached the
+          system will still flag it as severe.
         </p>
       )}
 
       {township && hasGauge && (
-        <div className="space-y-2">
-          {!useExactCm ? (
-            <Segmented
-              label="How high is the river?"
-              value={water}
-              onChange={setWater}
-              options={WATER_LEVELS.map((w) => ({ key: w.key, label: w.label }))}
+        <Field label="Current river level" hint={`Compared with this gauge's danger mark (${danger} cm).`}>
+          {!useExact ? (
+            <TapGrid
+              value={riverLevel}
+              onChange={setRiverLevel}
               columns={2}
+              options={RIVER_LEVELS.map((l) => ({ value: l.key, label: l.label }))}
             />
           ) : (
-            <div className="space-y-2">
-              <label htmlFor="cm" className="font-semibold">
-                Gauge reading (cm) — danger mark is {danger} cm
-              </label>
-              <input
-                id="cm"
-                type="number"
-                min={0}
-                value={gaugeCm}
-                onChange={(e) => setGaugeCm(e.target.value)}
-                className="w-full rounded-lg border-2 border-border bg-surface px-3 py-3 font-semibold"
-              />
-            </div>
+            <input
+              type="number"
+              min={0}
+              value={exactCm}
+              onChange={(e) => setExactCm(e.target.value)}
+              placeholder="Gauge reading in cm"
+              className="w-full rounded-xl border-2 border-border bg-surface px-3.5 py-3 text-[15px] font-semibold"
+            />
           )}
           <button
             type="button"
-            onClick={() => setUseExactCm((v) => !v)}
-            className="text-sm font-semibold text-accent underline"
+            onClick={() => setUseExact((v) => !v)}
+            className="mt-2 text-sm font-semibold text-accent underline"
           >
-            {useExactCm ? "Use the simple choice instead" : "I have an exact gauge reading in cm"}
+            {useExact ? "Use the simple choice instead" : "I have an exact gauge reading"}
           </button>
-        </div>
+        </Field>
       )}
 
-      <Segmented
-        label="Is the embankment holding?"
-        value={embankment}
-        onChange={setEmbankment}
-        options={[
-          { key: "intact", label: "Intact" },
-          { key: "breached", label: "Breached" },
-        ]}
-      />
-
-      <Segmented
-        label="What is the land like here?"
-        value={terrain}
-        onChange={setTerrain}
-        options={[
-          { key: "low_lying", label: "Low-lying" },
-          { key: "elevated", label: "Higher ground" },
-        ]}
-      />
-
-      <Segmented
-        label="Local rainfall right now"
-        value={rainfall}
-        onChange={setRainfall}
-        options={[
-          { key: "light", label: "Light" },
-          { key: "moderate", label: "Moderate" },
-          { key: "heavy", label: "Heavy" },
-          { key: "very_heavy", label: "Very heavy" },
-        ]}
-      />
-
-      <Segmented
-        label="Heavy rain upstream — how many days?"
-        value={String(rainDays) as "0" | "1" | "2" | "3"}
-        onChange={(v) => setRainDays(Number(v))}
-        options={[
-          { key: "0", label: "None" },
-          { key: "1", label: "1 day" },
-          { key: "2", label: "2 days" },
-          { key: "3", label: "3+ days" },
-        ]}
-        columns={4}
-      />
-
-      <Segmented
-        label="Can vehicles reach this place by road?"
-        value={road}
-        onChange={setRoad}
-        options={[
-          { key: "open", label: "Roads open" },
-          { key: "impassable", label: "Roads cut off" },
-        ]}
-      />
-
-      <Segmented
-        label="Are there elderly, disabled, or very young people at risk?"
-        value={vulnerable === null ? null : vulnerable ? "yes" : "no"}
-        onChange={(v) => setVulnerable(v === "yes")}
-        options={[
-          { key: "yes", label: "Yes" },
-          { key: "no", label: "No" },
-        ]}
-      />
-
-      <Segmented
-        label="Anyone injured?"
-        value={injured === null ? null : injured ? "yes" : "no"}
-        onChange={(v) => setInjured(v === "yes")}
-        options={[
-          { key: "yes", label: "Yes" },
-          { key: "no", label: "No" },
-        ]}
-      />
-
-      <div className="space-y-2">
-        <label htmlFor="pop" className="font-semibold">
-          Roughly how many people are affected?
-        </label>
-        <input
-          id="pop"
-          type="number"
-          min={0}
-          inputMode="numeric"
-          value={population}
-          onChange={(e) => setPopulation(e.target.value)}
-          placeholder="e.g. 500"
-          className="w-full rounded-lg border-2 border-border bg-surface px-3 py-3 font-semibold"
+      <Field label="Embankment">
+        <TapGrid
+          value={embankment}
+          onChange={setEmbankment}
+          columns={2}
+          dangerValue="breached"
+          options={[
+            { value: "intact", label: "Holding / intact" },
+            { value: "at_risk", label: "At risk of failure" },
+            { value: "breached", label: "Breached" },
+            { value: "unknown", label: "Unknown / can't access" },
+          ]}
         />
-      </div>
+      </Field>
+
+      <Field label="Current local rainfall">
+        <TapGrid
+          value={rainfall}
+          onChange={setRainfall}
+          columns={3}
+          options={[
+            { value: "no_rain", label: "No rain" },
+            { value: "light", label: "Light" },
+            { value: "moderate", label: "Moderate" },
+            { value: "heavy", label: "Heavy" },
+            { value: "very_heavy", label: "Very heavy" },
+            { value: "unknown", label: "Unknown" },
+          ]}
+        />
+      </Field>
+
+      <Field
+        label="Heavy rain upstream"
+        hint="Rain in the catchment upstream — a flood can be on its way even in dry weather here."
+      >
+        <TapGrid
+          value={upstream}
+          onChange={setUpstream}
+          columns={3}
+          options={[
+            { value: "none", label: "None" },
+            { value: "24h", label: "24 hours" },
+            { value: "48h", label: "48 hours" },
+            { value: "72h_plus", label: "72 hours +" },
+            { value: "unknown", label: "Unknown" },
+          ]}
+        />
+      </Field>
+
+      <Field label="Type of landform">
+        <TapGrid
+          value={landform}
+          onChange={setLandform}
+          columns={2}
+          options={[
+            { value: "riverbank", label: "Riverbank" },
+            { value: "low_lying_plain", label: "Low-lying plain" },
+            { value: "island", label: "Island" },
+            { value: "farmland", label: "Farmland" },
+            { value: "other", label: "Other" },
+          ]}
+        />
+      </Field>
+
+      <Field label="Can vehicles reach here by road?">
+        <StatusRamp
+          value={road}
+          onChange={setRoad}
+          options={[
+            { value: "accessible", kind: "ok", title: "ACCESSIBLE", sub: "Vehicles can reach the area" },
+            { value: "limited", kind: "warn", title: "LIMITED", sub: "Some difficulty getting through" },
+            { value: "inaccessible", kind: "bad", title: "INACCESSIBLE", sub: "Vehicles cannot reach the area" },
+            { value: "unknown", kind: "unknown", title: "UNKNOWN", sub: "Not sure" },
+          ]}
+        />
+      </Field>
+
+      <Field label="Are any of these groups present?" hint="Choose all that apply.">
+        <MultiTiles
+          value={groups}
+          onChange={setGroups}
+          options={[
+            { value: "elderly", label: "Elderly people" },
+            { value: "children", label: "Children" },
+            { value: "disabilities", label: "People with disabilities" },
+            { value: "pregnant", label: "Pregnant women" },
+          ]}
+        />
+      </Field>
+
+      <Field label="Are there any injured people?">
+        <TapGrid
+          value={injured}
+          onChange={setInjured}
+          columns={3}
+          options={[
+            { value: "yes", label: "Yes" },
+            { value: "no", label: "No" },
+            { value: "unknown", label: "Unknown" },
+          ]}
+        />
+        {injured === "unknown" && (
+          <p className="rounded-lg border border-border bg-surface-2 p-2.5 text-xs text-muted">
+            &ldquo;Unknown&rdquo; won&apos;t reserve a medic — but it&apos;s flagged on the result so the
+            coordinator can decide.
+          </p>
+        )}
+      </Field>
+
+      <Field label="Estimated people affected" hint="A rough range — no one can count exactly in a flood.">
+        <SearchSelect
+          value={people}
+          searchable={false}
+          placeholder="Choose a range…"
+          onChange={setPeople}
+          options={PEOPLE_RANGES.map((r) => ({ value: r.key, label: r.label }))}
+        />
+      </Field>
 
       {submitError && (
         <p className="rounded-lg border-2 border-sev-severe bg-white p-3 font-semibold text-sev-severe">
@@ -321,7 +271,7 @@ export function FloodReportForm() {
       <button
         type="submit"
         disabled={!ready || submitting}
-        className="w-full rounded-xl bg-accent px-4 py-4 text-lg font-extrabold text-white disabled:opacity-50"
+        className="min-h-[58px] w-full rounded-xl bg-accent-ink text-lg font-extrabold text-white disabled:opacity-50"
       >
         {submitting ? "Getting a recommendation…" : "Get recommendation"}
       </button>

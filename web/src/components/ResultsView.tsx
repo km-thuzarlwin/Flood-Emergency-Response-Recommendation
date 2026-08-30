@@ -128,6 +128,22 @@ export function ResultsView({ caseId }: { caseId: string }) {
         </section>
       )}
 
+      {/* assumptions — every Unknown / mapped answer from the report (doc 6 v2) */}
+      {c.assumptions?.length > 0 && (
+        <section className="rounded-xl border border-border bg-surface-2 p-4">
+          <h2 className="font-bold">Assumptions made</h2>
+          <p className="mt-1 text-xs text-muted">
+            Where the report said &ldquo;unknown&rdquo; or an in-between answer, this is how it was
+            read. Check these against what you know on the ground.
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+            {c.assumptions.map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <WhyTrace view={view} />
 
       {/* actions */}
@@ -136,7 +152,7 @@ export function ResultsView({ caseId }: { caseId: string }) {
           <button
             onClick={() => act(() => api.dispatch(c.case_id))}
             disabled={busy}
-            className="rounded-xl bg-accent px-5 py-3 font-extrabold text-white disabled:opacity-50"
+            className="rounded-xl bg-accent-ink px-5 py-3 font-extrabold text-white disabled:opacity-50"
           >
             Confirm &amp; dispatch responder
           </button>

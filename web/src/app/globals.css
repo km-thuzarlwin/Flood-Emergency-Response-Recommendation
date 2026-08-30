@@ -11,8 +11,14 @@
   --foreground: #16181d;
   --muted: #4b5563;
   --border: #c9ced6;
-  --accent: #1d4ed8;
-  --accent-strong: #1e40af;
+
+  /* brand — one azure hue, four shades. Selected state is OUTLINED (pale fill +
+     border + dark-azure text); solid azure fills use the darker shades so white
+     text stays legible in sunlight (NFR-4). Red is reserved for critical only. */
+  --accent: #0284c7; /* identity: borders, links, focus, ticks */
+  --accent-strong: #0369a1; /* solid fills carrying white text: nav button */
+  --accent-ink: #075985; /* dark text on --accent-tint; the CTA */
+  --accent-tint: #e0f2fe; /* pale fill for any selected state */
   --accent-fg: #ffffff;
 
   /* severity — bold, saturated, distinct hues; always shown with a text label too */
@@ -32,6 +38,8 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-tint: var(--accent-tint);
   --color-sev-severe: var(--sev-severe);
   --color-sev-high: var(--sev-high);
   --color-sev-moderate: var(--sev-moderate);

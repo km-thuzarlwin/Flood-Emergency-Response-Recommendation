@@ -16,22 +16,25 @@ import { getFloodCase } from "./repo";
 import { sql } from "./db";
 import { resetFixtures, setEdgePassable } from "./testing/fixtures";
 import { prologHealthy } from "./prolog";
+import type { ReportFormInput } from "./reportInput";
 
 const dbConfigured =
   !!process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("[PASSWORD]");
 
-const LEMYETHNA_REPORT = {
+/** The doc-7 Lemyethna case in the v2 report-form vocabulary. */
+const LEMYETHNA_REPORT: ReportFormInput = {
   township_id: "lemyethna",
-  gauge_reading_cm: 1250,
-  upstream_heavy_rain_days: 3,
-  local_rainfall: "heavy",
-  embankment_status: "breached",
-  terrain: "low_lying",
-  road_status: "impassable",
-  vulnerable_present: true,
-  injured_survivors: true,
-  affected_population: 39000,
-} as const;
+  river_level: null,
+  gauge_reading_cm: 1250, // exact — reproduces doc 7 exactly
+  embankment: "breached",
+  rainfall: "heavy",
+  upstream_rain: "72h_plus",
+  landform: "low_lying_plain",
+  road: "inaccessible",
+  vulnerable_groups: ["elderly", "children"],
+  injured: "yes",
+  people_affected: "over_10000",
+};
 
 describe.skipIf(!dbConfigured)("Phase 3 acceptance — live stack", () => {
   beforeEach(async () => {
@@ -149,8 +152,9 @@ describe.skipIf(!dbConfigured)("Phase 3 acceptance — live stack", () => {
       runFloodCasePipeline({
         ...LEMYETHNA_REPORT,
         township_id: "labutta",
-        embankment_status: "intact",
-        gauge_reading_cm: 0,
+        embankment: "intact",
+        river_level: null,
+        gauge_reading_cm: null,
       }),
     ).rejects.toMatchObject({ code: "incomplete_assessment", status: 422 });
   });
@@ -159,8 +163,9 @@ describe.skipIf(!dbConfigured)("Phase 3 acceptance — live stack", () => {
     const r = await runFloodCasePipeline({
       ...LEMYETHNA_REPORT,
       township_id: "labutta",
-      embankment_status: "breached",
-      gauge_reading_cm: 0,
+      embankment: "breached",
+      river_level: null,
+      gauge_reading_cm: null,
     });
     expect(r.severity).toBe("severe");
     expect(r.severity_reason).toBe("embankment_breach_override");
@@ -171,7 +176,7 @@ describe.skipIf(!dbConfigured)("Phase 3 acceptance — live stack", () => {
   it("breached but gauge still below the danger level -> still severe (edge-case table)", async () => {
     const r = await runFloodCasePipeline({
       ...LEMYETHNA_REPORT,
-      gauge_reading_cm: 500, // well under Ngathaingchaung's 1160 cm
+      gauge_reading_cm: 500, // exact, well under Ngathaingchaung's 1160 cm
     });
     expect(r.severity).toBe("severe");
     expect(r.severity_reason).toBe("embankment_breach_override");

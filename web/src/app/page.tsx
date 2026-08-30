@@ -19,7 +19,7 @@ export default function Home() {
           <Link
             href="/report"
             data-btn
-            className="rounded-2xl bg-accent px-6 py-6 text-xl font-extrabold text-white"
+            className="rounded-2xl bg-accent-ink px-6 py-6 text-xl font-extrabold text-white"
           >
             Report a flood situation →
           </Link>

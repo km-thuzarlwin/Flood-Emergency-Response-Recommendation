@@ -8,7 +8,8 @@
  * Every failure returns an explicit status, never a guessed result (NFR-1).
  */
 import { ApiError } from "./http";
-import { floodCaseInputSchema, formatIssues } from "./validation";
+import { formatIssues } from "./validation";
+import { reportFormSchema, mapReportToReasoner } from "./reportInput";
 import { getTownshipWithGauge, listNetworkEdges } from "./repo";
 import { buildGraph, dijkstra } from "./domain/routing";
 import { scorePriority } from "./domain/priority";
@@ -34,23 +35,35 @@ export interface FloodCaseResponse {
   assigned_unit: { id: string; home_township_id: string | null; distance_to_incident: number } | null;
   assigned_shelter: { id: string; display_name: string | null; distance_to_incident: number } | null;
   notes: string[];
+  /** "Assumptions made" — one line per Unknown / mapped answer (doc 6 v2) */
+  assumptions: string[];
 }
 
 export async function runFloodCasePipeline(body: unknown): Promise<FloodCaseResponse> {
-  // 1. validate request shape
-  const parsed = floodCaseInputSchema.safeParse(body);
+  // 1. validate the v2 report-form body
+  const parsed = reportFormSchema.safeParse(body);
   if (!parsed.success) {
     throw new ApiError("invalid_request", formatIssues(parsed.error));
   }
-  const input = parsed.data;
+  const form = parsed.data;
 
   // 2. resolve township + its gauge station
-  const township = await getTownshipWithGauge(input.township_id);
+  const township = await getTownshipWithGauge(form.township_id);
   if (!township) {
-    throw new ApiError("invalid_request", `unknown township_id: ${input.township_id}`);
+    throw new ApiError("invalid_request", `unknown township_id: ${form.township_id}`);
   }
 
   const hasGauge = township.danger_level_cm != null;
+  if (hasGauge && form.river_level == null && form.gauge_reading_cm == null) {
+    throw new ApiError(
+      "invalid_request",
+      `river level (or an exact gauge reading) is required for ${township.display_name}`,
+    );
+  }
+
+  // 3. map the rich form vocabulary to the reasoner's FloodCaseInput
+  const { input, detail, assumptions } = mapReportToReasoner(form, township.danger_level_cm);
+
   if (!hasGauge && input.embankment_status !== "breached") {
     throw new ApiError(
       "incomplete_assessment",
@@ -121,6 +134,8 @@ export async function runFloodCasePipeline(body: unknown): Promise<FloodCaseResp
     assessment,
     priority,
     gaugePercent,
+    reportDetail: detail,
+    assumptions,
   });
 
   // 7. response (doc 5 §12.2 shape exactly)
@@ -151,5 +166,6 @@ export async function runFloodCasePipeline(body: unknown): Promise<FloodCaseResp
           }
         : null,
     notes: [...unit.notes, ...shelter.notes],
+    assumptions,
   };
 }

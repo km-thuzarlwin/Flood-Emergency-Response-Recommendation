@@ -12,9 +12,9 @@ export function AppHeader() {
           <Link
             href="/report"
             data-btn
-            className="rounded-lg bg-accent px-4 py-2 font-semibold text-white"
+            className="rounded-lg bg-accent-strong px-4 py-2 font-semibold text-white"
           >
-            New report
+            File a Report
           </Link>
           <Link
             href="/overview"

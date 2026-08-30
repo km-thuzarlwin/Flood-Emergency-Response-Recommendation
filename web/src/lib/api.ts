@@ -6,7 +6,7 @@
 import type { CaseView } from "./caseView";
 import type { FloodCase, GaugeStation, RescueUnit, Shelter, Township } from "./schema";
 import type { FloodCaseResponse } from "./pipeline";
-import type { FloodCaseInput } from "./validation";
+import type { ReportFormInput } from "./reportInput";
 
 export class ApiClientError extends Error {
   constructor(
@@ -46,8 +46,8 @@ export const api = {
       (r) => r.cases,
     ),
 
-  submitReport: (input: FloodCaseInput) =>
-    req<FloodCaseResponse>("/api/flood-case", { method: "POST", body: JSON.stringify(input) }),
+  submitReport: (form: ReportFormInput) =>
+    req<FloodCaseResponse>("/api/flood-case", { method: "POST", body: JSON.stringify(form) }),
 
   caseView: (id: string) => req<CaseView>(`/api/flood-case/${encodeURIComponent(id)}`),
 

@@ -34,3 +34,7 @@ prolog/.serve.log
 # build/test artifacts
 coverage/
 *.tsbuildinfo
+
+# design canvas — seeded output (2MB+, regenerable) and extracted copies
+design/ferrs-screen-sketches.html
+design/from-canvas/
