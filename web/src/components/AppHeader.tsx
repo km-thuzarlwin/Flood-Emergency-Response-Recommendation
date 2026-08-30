@@ -11,7 +11,7 @@ type Action = { href: string; label: string; kind: "primary" | "plain" };
 const ACTION: Record<HeaderContext, Action | null> = {
   home: null,
   report: { href: "/", label: "Back", kind: "plain" },
-  results: { href: "/report", label: "File a report", kind: "primary" },
+  results: { href: "/overview", label: "Regional overview", kind: "primary" },
   overview: { href: "/report", label: "File a report", kind: "primary" },
 };
 
