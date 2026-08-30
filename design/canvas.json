@@ -1,0 +1,22 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Report form" },
+    { "id": "page-2", "name": "Other screens" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html",     "x": 0,   "y": 0, "w": 390, "h": 2340, "page": "page-1", "title": "Report a flood situation" },
+    { "file": "Results.dc.html",  "x": 0,   "y": 0, "w": 390, "h": 1460, "page": "page-2" },
+    { "file": "Overview.dc.html", "x": 520, "y": 0, "w": 390, "h": 1000, "page": "page-2" }
+  ],
+  "annotations": [
+    {
+      "id": "mapping",
+      "x": 470,
+      "y": 0,
+      "w": 420,
+      "page": "page-1",
+      "text": "Colour: one azure hue. Grey = unselected, azure = selected (pale fill + azure border + dark-azure label), red is reserved for critical conditions only (the \"Breached\" chip, and the \"Inaccessible\" road state).\n\nHow each answer reaches the reasoner (Prolog rules stay unchanged):\n\nEmbankment — Holding / At risk / Unknown all map to intact for the severe-override; \"At risk\"/\"Unknown\" add a note on the result. Only \"Breached\" forces Severe.\nRainfall — \"No rain\" and \"Unknown\" behave like Light (no severity floor, 0 priority points).\nUpstream — 24h→1 day, 48h→2, 72h+→3 (the +4 priority bonus fires at 72h+). Unknown→0.\nLandform — all map to low_lying except \"Other\" → elevated + note.\nRoad — Accessible→open, Inaccessible→impassable, Limited/Unknown→open + note.\nGroups — any box ticked = vulnerable_present true (+7 priority). Detail kept on the record.\nInjured — Unknown does NOT reserve a medic; it's flagged for the coordinator.\nRange — sends 50 / 300 / 1,000 / 5,000 / 20,000; boundaries at 100/500/2,000/10,000 are what move the score.\n\nEvery Unknown / mapped value collects into an \"Assumptions made\" panel on the Results screen."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

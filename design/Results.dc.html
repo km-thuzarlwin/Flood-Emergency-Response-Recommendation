@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap">
+  <style>
+    body{margin:0;font-family:Geist,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#eef0f2;color:#16181d;-webkit-font-smoothing:antialiased}
+    *{box-sizing:border-box}
+    a{color:#0284c7}a:hover{color:#075985}
+    .wrap{width:390px}
+    .hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid #c9ced6;background:#fff}
+    .brand{font-size:16px;font-weight:800}.brand span{font-weight:400;color:#4b5563;margin-left:6px}
+    .navbtn{font-size:13px;font-weight:700;border-radius:9px;padding:8px 12px;border:1px solid #c9ced6}
+    .body{padding:16px;display:flex;flex-direction:column;gap:14px}
+    .meta{font-size:13px;font-weight:600;color:#4b5563}
+    .head{background:#fff;border:1px solid #c9ced6;border-radius:16px;padding:18px}
+    .badge{display:inline-flex;align-items:center;font-size:22px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:#b3160f;border-radius:11px;padding:8px 16px}
+    .action{font-size:24px;font-weight:800;line-height:1.15;margin:14px 0 4px}
+    .blurb{color:#4b5563;font-size:14px;margin:0}
+    .prio{font-size:14px;margin-top:12px}
+    .map{height:180px;border:1px solid #c9ced6;border-radius:14px;background:linear-gradient(180deg,#e7ebf0,#dfe4ea);position:relative;overflow:hidden}
+    .pin{position:absolute;width:18px;height:18px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+    .route{position:absolute;height:4px;border-radius:2px}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .card{background:#fff;border:1px solid #c9ced6;border-radius:14px;padding:14px}
+    .card h2{font-size:14px;font-weight:800;margin:0 0 4px}
+    .card p{margin:0;font-size:13px}
+    .card .mut{color:#4b5563;font-size:12px}
+    .notes{background:#f6f7f8;border:1px solid #c9ced6;border-radius:14px;padding:14px}
+    .notes h2{font-size:14px;font-weight:800;margin:0 0 6px}
+    .notes li{font-size:13px;margin:3px 0}
+    .why{background:#fff;border:1px solid #c9ced6;border-radius:14px;padding:14px}
+    .why summary{font-size:15px;font-weight:800;cursor:pointer}
+    .why p{font-size:13px;color:#16181d;margin:8px 0 0}
+    .why .cav{color:#4b5563}
+    .acts{display:flex;flex-wrap:wrap;gap:10px}
+    .primary{background:#075985;color:#fff;border-radius:12px;min-height:52px;padding:0 18px;display:flex;align-items:center;font-size:15px;font-weight:800}
+    .secondary{border:2px solid #c9ced6;border-radius:12px;min-height:52px;padding:0 18px;display:flex;align-items:center;font-size:15px;font-weight:700;background:#fff}
+  </style>
+</helmet>
+<div class="wrap">
+  <div class="hdr">
+    <div class="brand">FERRS <span>Flood response</span></div>
+    <div class="navbtn">Overview</div>
+  </div>
+  <div class="body">
+    <div class="meta">Lemyethna · case FLD-20260830-001 · Assessed</div>
+
+    <div class="head">
+      <div class="badge">Severe</div>
+      <div class="action">Evacuate immediately</div>
+      <p class="blurb">Life-threatening. Evacuate now.</p>
+      <div class="prio">Priority <b>Critical</b> (56/59) · needs an engine-powered boat with a medic aboard</div>
+    </div>
+
+    <div class="map">
+      <div class="route" style="left:150px;top:60px;width:70px;background:#0284c7;transform:rotate(20deg)"></div>
+      <div class="route" style="left:90px;top:95px;width:130px;background:#15803d;transform:rotate(-30deg)"></div>
+      <div class="pin" style="left:200px;top:52px;background:#b3160f"></div>
+      <div class="pin" style="left:224px;top:82px;background:#0284c7"></div>
+      <div class="pin" style="left:78px;top:126px;background:#15803d"></div>
+    </div>
+
+    <div class="two">
+      <div class="card"><h2>Rescue boat</h2><p><b>RB-01</b> from Yegyi</p><p class="mut">3 units away · engine-powered · medic aboard</p></div>
+      <div class="card"><h2>Shelter</h2><p><b>Pathein General Hospital Annex</b></p><p class="mut">9 units away · medical-equipped</p></div>
+    </div>
+
+    <div class="notes">
+      <h2>Notes</h2>
+      <ul style="margin:0;padding-left:18px">
+        <li>RB-02, stationed AT Lemyethna, was excluded — no medic aboard</li>
+        <li>Lemyethna Monastery (nearest shelter, distance 0) lacks medical capability for this case</li>
+      </ul>
+    </div>
+
+    <details class="why" open>
+      <summary>Why this rating?</summary>
+      <p>Rated <b>Severe</b> because the embankment is breached — this overrides the river gauge. A breach can sometimes be addressed directly (temporary repair, sandbagging).</p>
+      <p>Referenced gauge station <b>ngathaingchaung_gauge</b> on the Ngawun River — the reading is <b>108%</b> of the 1160&nbsp;cm danger mark (1250&nbsp;cm reported).</p>
+      <p class="cav">The 70% / 100% / 115% cut-points are this project's own estimate, not official DMH thresholds — sanity-check against what you know on the ground.</p>
+    </details>
+
+    <div class="acts">
+      <div class="primary">Confirm &amp; dispatch responder</div>
+      <div class="secondary">Cancel report</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

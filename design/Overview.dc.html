@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap">
+  <style>
+    body{margin:0;font-family:Geist,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#eef0f2;color:#16181d;-webkit-font-smoothing:antialiased}
+    *{box-sizing:border-box}
+    a{color:#0284c7}a:hover{color:#075985}
+    .wrap{width:390px}
+    .hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid #c9ced6;background:#fff}
+    .brand{font-size:16px;font-weight:800}.brand span{font-weight:400;color:#4b5563;margin-left:6px}
+    .navbtn{font-size:13px;font-weight:700;border-radius:9px;padding:8px 12px;border:1px solid #c9ced6}
+    .navbtn.p{background:#0369a1;color:#fff;border-color:#0369a1}
+    .body{padding:16px;display:flex;flex-direction:column;gap:14px}
+    h1{font-size:22px;font-weight:800;margin:0}
+    .sub{font-size:14px;color:#4b5563;margin:0}
+    .map{height:190px;border:1px solid #c9ced6;border-radius:14px;background:linear-gradient(180deg,#e7ebf0,#dfe4ea);position:relative;overflow:hidden}
+    .pin{position:absolute;width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+    .lh{font-size:15px;font-weight:800}
+    .case{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid #c9ced6;border-left:8px solid #c2410c;border-radius:12px;padding:12px 14px}
+    .case.sev{border-left-color:#b3160f}
+    .case.mod{border-left-color:#a15c07}
+    .ct{font-weight:800;font-size:15px}
+    .cm{font-size:12px;color:#4b5563;margin-top:2px}
+    .chip{font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#fff;border-radius:8px;padding:5px 9px;flex:none}
+    .chip.high{background:#c2410c}.chip.sev{background:#b3160f}.chip.mod{background:#a15c07}
+  </style>
+</helmet>
+<div class="wrap">
+  <div class="hdr">
+    <div class="brand">FERRS <span>Flood response</span></div>
+    <div style="display:flex;gap:6px"><div class="navbtn p">File a Report</div><div class="navbtn">Overview</div></div>
+  </div>
+  <div class="body">
+    <h1>Regional overview</h1>
+    <p class="sub">Every active case across the network, most urgent first.</p>
+
+    <div class="map">
+      <div class="pin" style="left:150px;top:40px;background:#b3160f"></div>
+      <div class="pin" style="left:196px;top:96px;background:#c2410c"></div>
+      <div class="pin" style="left:176px;top:132px;background:#a15c07"></div>
+    </div>
+
+    <div class="lh">Active cases (3) · open, assessed, dispatched</div>
+
+    <div class="case">
+      <div><div class="ct">Nyaungdon</div><div class="cm">FLD-20260830-003 · Assessed · priority High (37/59)</div></div>
+      <div class="chip high">High</div>
+    </div>
+    <div class="case sev">
+      <div><div class="ct">Hinthada</div><div class="cm">FLD-20260830-001 · Assessed · priority Moderate (24/59)</div></div>
+      <div class="chip sev">Severe</div>
+    </div>
+    <div class="case mod">
+      <div><div class="ct">Maubin</div><div class="cm">FLD-20260830-002 · Assessed · priority Low (6/59)</div></div>
+      <div class="chip mod">Moderate</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
