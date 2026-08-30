@@ -1,7 +1,7 @@
 import { AppHeader } from "@/components/AppHeader";
 import { ResultsView } from "@/components/ResultsView";
 
-export const metadata = { title: "Recommendation — FERRS" };
+export const metadata = { title: "Recommendation — Crest" };
 
 export default async function ResultsPage({
   params,
@@ -11,7 +11,7 @@ export default async function ResultsPage({
   const { caseId } = await params;
   return (
     <>
-      <AppHeader />
+      <AppHeader context="results" />
       <main className="mx-auto max-w-2xl px-4 py-8">
         <h1 className="text-2xl font-extrabold">Recommendation</h1>
         <div className="mt-5">

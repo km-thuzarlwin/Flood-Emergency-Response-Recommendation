@@ -1,12 +1,12 @@
 import { AppHeader } from "@/components/AppHeader";
 import { FloodReportForm } from "@/components/FloodReportForm";
 
-export const metadata = { title: "Report a flood situation — FERRS" };
+export const metadata = { title: "Report a flood situation — Crest" };
 
 export default function ReportPage() {
   return (
     <>
-      <AppHeader />
+      <AppHeader context="report" />
       <main className="mx-auto max-w-xl px-4 py-8">
         <h1 className="text-2xl font-extrabold">Report a flood situation</h1>
         <p className="mt-2 text-muted">
