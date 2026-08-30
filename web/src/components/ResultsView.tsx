@@ -197,14 +197,22 @@ export function ResultsView({ caseId }: { caseId: string }) {
             Cancel report
           </button>
         )}
-        <Link
-          href="/overview"
-          data-btn
-          className="rounded-xl border-2 border-border px-5 py-3 font-bold"
-        >
+      </section>
+
+      {(c.status === "resolved" || c.status === "cancelled") && (
+        <p className="text-muted">
+          This case is {CASE_STATUS[c.status].label.toLowerCase()}.
+        </p>
+      )}
+
+      <nav className="flex flex-wrap gap-4 border-t border-border pt-4 text-sm font-semibold text-accent-ink">
+        <Link href="/overview" className="underline">
           Regional overview
         </Link>
-      </section>
+        <Link href="/report" className="underline">
+          File another report
+        </Link>
+      </nav>
     </div>
   );
 }

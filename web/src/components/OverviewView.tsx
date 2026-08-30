@@ -38,6 +38,14 @@ export function OverviewView() {
 
   return (
     <div className="space-y-5">
+      <Link
+        href="/report"
+        data-btn
+        className="inline-flex rounded-xl bg-accent-strong px-5 py-3 font-extrabold text-white"
+      >
+        File a report →
+      </Link>
+
       <RegionalMap cases={cases} townships={townships} />
 
       <section>
@@ -45,13 +53,7 @@ export function OverviewView() {
           Active cases ({cases.length}) · open, assessed, and dispatched
         </h2>
         {cases.length === 0 ? (
-          <p className="text-muted">
-            No active cases.{" "}
-            <Link href="/report" className="font-semibold text-accent underline">
-              File a report
-            </Link>
-            .
-          </p>
+          <p className="text-muted">No active cases right now.</p>
         ) : (
           <ul className="space-y-2">
             {cases.map((c) => {

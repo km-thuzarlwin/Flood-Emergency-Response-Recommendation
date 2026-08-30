@@ -11,7 +11,7 @@ export default async function ResultsPage({
   const { caseId } = await params;
   return (
     <>
-      <AppHeader context="results" />
+      <AppHeader />
       <main className="mx-auto max-w-2xl px-4 py-8">
         <h1 className="text-2xl font-extrabold">Recommendation</h1>
         <div className="mt-5">
