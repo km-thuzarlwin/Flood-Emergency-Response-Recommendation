@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "FERRS: run app (Prolog + web)",
+      "detail": "Starts the SWI-Prolog reasoning service (:4321) and the Next.js dev server (:3000).",
+      "type": "shell",
+      "command": "npm run dev:all",
+      "options": { "cwd": "${workspaceFolder}/web" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "FERRS: Prolog service only",
+      "type": "shell",
+      "command": "swipl prolog/serve.pl",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "FERRS: test — Prolog + web",
+      "detail": "Run the Prolog suite, then the web suite (needs the app task running for the live integration tests).",
+      "type": "shell",
+      "command": "swipl prolog/run_tests.pl && cd web && npm test",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}
