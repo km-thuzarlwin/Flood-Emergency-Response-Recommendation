@@ -8,7 +8,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Crest — Flood Emergency Response Recommendation System",
+  title: "AQUA — Flood Emergency Response Recommendation System",
   description:
     "Decision-support for township flood response in the Ayeyarwady Delta. Report conditions, get a recommended action, unit, and shelter — with the reasoning shown.",
 };

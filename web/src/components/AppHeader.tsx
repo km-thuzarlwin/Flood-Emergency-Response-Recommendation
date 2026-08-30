@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /** Display name + tagline. Change here only. */
-export const APP_NAME = "Crest";
+export const APP_NAME = "AQUA";
 export const APP_TAGLINE = "Flood Emergency Response Recommendation System";
 
 export type HeaderContext = "home" | "report" | "results" | "overview";

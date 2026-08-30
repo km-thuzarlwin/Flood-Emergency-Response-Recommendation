@@ -1,7 +1,7 @@
 import { AppHeader } from "@/components/AppHeader";
 import { OverviewView } from "@/components/OverviewView";
 
-export const metadata = { title: "Regional overview — Crest" };
+export const metadata = { title: "Regional overview — AQUA"};
 
 export default function OverviewPage() {
   return (

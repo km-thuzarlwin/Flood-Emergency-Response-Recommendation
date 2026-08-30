@@ -1,7 +1,7 @@
 import { AppHeader } from "@/components/AppHeader";
 import { ResultsView } from "@/components/ResultsView";
 
-export const metadata = { title: "Recommendation — Crest" };
+export const metadata = { title: "Recommendation — AQUA"};
 
 export default async function ResultsPage({
   params,

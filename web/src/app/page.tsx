@@ -10,7 +10,7 @@ export default function Home() {
           Township flood-response decision support
         </h1>
         <p className="mt-3 text-lg text-muted">
-          Report the conditions in a township. Crest rates how serious it is, says what to do,
+          Report the conditions in a township. AQUA rates how serious it is, says what to do,
           and picks the nearest suitable rescue boat and shelter — showing its reasoning.
           A person still makes the final call.
         </p>
