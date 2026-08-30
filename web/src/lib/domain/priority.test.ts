@@ -117,4 +117,24 @@ describe("priority scoring (doc 5)", () => {
       }
     }
   });
+
+  it("property (randomised, doc 8 §18.6): 0 ≤ score ≤ 59 and band matches the score for any input", () => {
+    const rainfalls = ["light", "moderate", "heavy", "very_heavy"] as const;
+    const pick = <T>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
+    for (let i = 0; i < 500; i++) {
+      const r = scorePriority({
+        embankment_status: pick(["intact", "breached"] as const),
+        gauge_percent: Math.random() < 0.15 ? null : Math.floor(Math.random() * 260) - 20,
+        upstream_heavy_rain_days: Math.floor(Math.random() * 8),
+        local_rainfall: pick(rainfalls),
+        road_status: pick(["open", "impassable"] as const),
+        vulnerable_present: Math.random() < 0.5,
+        injured_survivors: Math.random() < 0.5,
+        affected_population: Math.floor(Math.random() * 60_000) - 100,
+      });
+      expect(r.score).toBeGreaterThanOrEqual(0);
+      expect(r.score).toBeLessThanOrEqual(59);
+      expect(r.band).toBe(priorityBand(r.score));
+    }
+  });
 });

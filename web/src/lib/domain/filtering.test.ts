@@ -139,3 +139,54 @@ describe("selectShelter — fallback (doc 5 §9.2)", () => {
     expect(sel.notes).toEqual([]);
   });
 });
+
+describe("selectUnit — doc 8 §18.7: a township whose candidates are all unavailable", () => {
+  it("returns null + escalation, never throws", () => {
+    const allDeployed: UnitRow[] = SEED_UNITS.map((u) => ({ ...u, status: "deployed" }));
+    const sel = selectUnit(allDeployed, ["motorized", "medical_support"], LEMYETHNA);
+    expect(sel.id).toBeNull();
+    expect(sel.notes).toContain(
+      "No suitable rescue unit available in the network — escalate for manual coordination.",
+    );
+  });
+});
+
+describe("doc 8 §18.6: required-capabilities invariant (randomised)", () => {
+  const CAPS = ["motorized", "medical_support"] as const;
+  const rndSubset = () => CAPS.filter(() => Math.random() < 0.5);
+  const rndUnit = (i: number): UnitRow => ({
+    id: `RB-${i}`,
+    home_township_id: ["yegyi", "lemyethna", "pathein", "bogale", "myaungmya"][i % 5],
+    status: (["available", "reserved", "deployed"] as const)[i % 3],
+    mobility: Math.random() < 0.5 ? "motorized" : "standard",
+    medical_support: Math.random() < 0.5,
+  });
+
+  it("selectUnit never demands a capability outside {motorized, medical_support}", () => {
+    for (let t = 0; t < 200; t++) {
+      const units = Array.from({ length: 5 }, (_, i) => rndUnit(i));
+      const req = rndSubset();
+      const sel = selectUnit(units, req, LEMYETHNA);
+      // the chosen unit, if any, satisfies the (possibly relaxed) requirement set
+      if (sel.id) {
+        const u = units.find((x) => x.id === sel.id)!;
+        expect(u.status).toBe("available");
+        if (!sel.relaxed) {
+          for (const c of req) {
+            if (c === "motorized") expect(u.mobility).toBe("motorized");
+            if (c === "medical_support") expect(u.medical_support).toBe(true);
+          }
+        }
+      }
+      // exclusion notes only ever name motorized/medic reasons
+      for (const n of sel.notes) {
+        expect(
+          n.includes("no medic aboard") ||
+            n.includes("not an engine-powered boat") ||
+            n.startsWith("No unit with medical support") ||
+            n.startsWith("No suitable rescue unit"),
+        ).toBe(true);
+      }
+    }
+  });
+});

@@ -45,35 +45,43 @@ Next.js 16 (React 19, TypeScript) · SWI-Prolog (reasoning, over HTTP) · Postgr
 | 1 | DB schema + regional seed data (docs 2, 3) | ✅ done — migrations `001`–`004`, all DoD checks pass |
 | 2 | Prolog rule base + HTTP service (doc 4) | ✅ done — `swipl prolog/run_tests.pl` → 41/41 |
 | — | Next.js scaffold + DB / Prolog seams | ✅ ready |
-| 3 | Priority scoring, filtering, routing, reservation, API (doc 5) — gated by the Lemyethna acceptance test (doc 7) | ✅ done — 33 unit tests + a gated end-to-end acceptance test; 10 API routes. Set `web/.env` `DATABASE_URL` + run `npm run test:integration` for the live end-to-end check. |
-| 4 | UI screens (doc 6) — Report, Results (+ "Why?" trace + Leaflet map), Regional Overview | ✅ done — `/report`, `/results/[id]`, `/overview`, `/`. Builds clean; the non-technical Report→Results walkthrough runs once `web/.env` has the DB password. |
-| 5 | QA hardening (doc 8) | ⬜ not started |
+| 3 | Priority scoring, filtering, routing, reservation, API (doc 5) — gated by the Lemyethna acceptance test (doc 7) | ✅ done — 10 API routes; the live acceptance test reproduces the doc-7 response exactly. |
+| 4 | UI screens (doc 6) — Report, Results (+ "Why?" trace + Leaflet map), Regional Overview | ✅ done — `/report`, `/results/[id]`, `/overview`, `/`. Verified live in a mobile viewport. |
+| 5 | QA hardening (doc 8) | ✅ done — every doc 8 category has tests. **41 Prolog + 52 web.** Coverage matrix in `web/TESTING.md`. |
 
 ## Running the pieces
 
-### Prolog reasoning service (Phase 2)
-
-```bash
-swipl prolog/serve.pl          # http://localhost:4321  (GET /health, POST /assess)
-swipl prolog/run_tests.pl      # test suite (doc 8 §18.1 + §18.6)
-```
-
-### Web app (Phases 3+)
+### The whole app
 
 ```bash
 cd web
-cp .env.example .env           # then fill in DATABASE_URL (Supabase Session pooler) + FERRS_PROLOG_URL
+cp .env.example .env      # fill in DATABASE_URL (Supabase) + FERRS_PROLOG_URL
 npm install
-npm run dev                    # http://localhost:3000
-npm test                       # Vitest
-npm run build
+npm run dev:all           # starts the Prolog service (:4321) AND Next dev (:3000)
+```
+Open http://localhost:3000. Two-terminal alternative: `npm run prolog` and `npm run dev`.
+
+### Tests
+
+```bash
+swipl prolog/run_tests.pl        # Prolog rule base + HTTP service — 41 tests
+cd web && npm test               # domain logic + live end-to-end — 52 tests
+cd web && npm run test:integration   # just the live pipeline / acceptance suite
+```
+The live suite needs `web/.env` set and `npm run prolog` running; it skips itself otherwise.
+Full coverage map: [web/TESTING.md](web/TESTING.md).
+
+### Prolog service on its own
+
+```bash
+swipl prolog/serve.pl            # http://localhost:4321  (GET /health, POST /assess)
 ```
 
 ### Database
 
-Schema and seed data live in `supabase/migrations/`. They were applied to the hosted
-Supabase project directly; `web/.env`'s `DATABASE_URL` (Session pooler, port 5432) is
-what the app connects with at runtime.
+Schema and seed data live in `supabase/migrations/`, applied to the hosted Supabase
+project. `web/.env`'s `DATABASE_URL` (the pooler connection string) is what the app
+connects with at runtime.
 
 ## Data provenance
 

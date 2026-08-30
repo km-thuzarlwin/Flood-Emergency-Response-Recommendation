@@ -19,8 +19,19 @@ const RESET_SQL = `
   update shelter set
     status = case id when 'S-01' then 'full'::shelter_status else 'accepting'::shelter_status end,
     capability = case id when 'S-03' then 'medical_equipped'::shelter_capability else 'general'::shelter_capability end;
+
+  update network_edge set passable = true;
 `;
 
 export async function resetFixtures(): Promise<void> {
   await sql.unsafe(RESET_SQL);
+}
+
+/** Toggle one undirected edge's passability (doc 8 §18.7). Order-independent. */
+export async function setEdgePassable(a: string, b: string, passable: boolean): Promise<void> {
+  await sql`
+    update network_edge set passable = ${passable}
+    where (from_township_id = ${a} and to_township_id = ${b})
+       or (from_township_id = ${b} and to_township_id = ${a})
+  `;
 }

@@ -14,7 +14,7 @@ import { runFloodCasePipeline } from "./pipeline";
 import { transitionCase } from "./lifecycle";
 import { getFloodCase } from "./repo";
 import { sql } from "./db";
-import { resetFixtures } from "./testing/fixtures";
+import { resetFixtures, setEdgePassable } from "./testing/fixtures";
 import { prologHealthy } from "./prolog";
 
 const dbConfigured =
@@ -120,5 +120,89 @@ describe.skipIf(!dbConfigured)("Phase 3 acceptance — live stack", () => {
     await expect(
       runFloodCasePipeline({ ...LEMYETHNA_REPORT, gauge_reading_cm: -1 }),
     ).rejects.toMatchObject({ status: 422 });
+  });
+
+  // ---- doc 8 §18.7: routing edge cases, end to end ----------------------
+
+  it("blocked Lemyethna→Yegyi edge: the worked example routes to the next-best unit (RB-05), not an error", async () => {
+    await setEdgePassable("lemyethna", "yegyi", false);
+    try {
+      const r = await runFloodCasePipeline(LEMYETHNA_REPORT);
+      // RB-01 (Yegyi) is now far; RB-05 (Bogale, distance 16) is the next candidate
+      // that still satisfies {motorized, medical_support}.
+      expect(r.assigned_unit).toEqual({
+        id: "RB-05",
+        home_township_id: "bogale",
+        distance_to_incident: 16,
+      });
+      // the compound-filter exclusion note for the co-located RB-02 still fires
+      expect(r.notes).toContain("RB-02, stationed AT Lemyethna, was excluded — no medic aboard");
+    } finally {
+      await setEdgePassable("lemyethna", "yegyi", true);
+    }
+  });
+
+  // ---- doc 8 §18.8 + edge-case table: fail-safe behaviour --------------
+
+  it("coastal township, not breached -> 422 incomplete_assessment (no river gauge; storm-surge gap)", async () => {
+    await expect(
+      runFloodCasePipeline({
+        ...LEMYETHNA_REPORT,
+        township_id: "labutta",
+        embankment_status: "intact",
+        gauge_reading_cm: 0,
+      }),
+    ).rejects.toMatchObject({ code: "incomplete_assessment", status: 422 });
+  });
+
+  it("coastal township, breached -> 200 severe via the override, gauge_percent null", async () => {
+    const r = await runFloodCasePipeline({
+      ...LEMYETHNA_REPORT,
+      township_id: "labutta",
+      embankment_status: "breached",
+      gauge_reading_cm: 0,
+    });
+    expect(r.severity).toBe("severe");
+    expect(r.severity_reason).toBe("embankment_breach_override");
+    const c = await getFloodCase(r.case_id);
+    expect(c?.gauge_percent).toBeNull();
+  });
+
+  it("breached but gauge still below the danger level -> still severe (edge-case table)", async () => {
+    const r = await runFloodCasePipeline({
+      ...LEMYETHNA_REPORT,
+      gauge_reading_cm: 500, // well under Ngathaingchaung's 1160 cm
+    });
+    expect(r.severity).toBe("severe");
+    expect(r.severity_reason).toBe("embankment_breach_override");
+  });
+
+  it("two reports for the same township are NOT merged — two distinct cases (edge-case table)", async () => {
+    const a = await runFloodCasePipeline(LEMYETHNA_REPORT);
+    const b = await runFloodCasePipeline(LEMYETHNA_REPORT);
+    expect(a.case_id).not.toBe(b.case_id);
+    expect((await getFloodCase(a.case_id))?.status).toBe("assessed");
+    expect((await getFloodCase(b.case_id))?.status).toBe("assessed");
+  });
+
+  it("lifecycle: resolving twice is idempotent; cancelling a resolved case is a 409 (edge-case table)", async () => {
+    const { case_id } = await runFloodCasePipeline(LEMYETHNA_REPORT);
+    await transitionCase(case_id, "resolve");
+    const again = await transitionCase(case_id, "resolve"); // no-op
+    expect(again.status).toBe("resolved");
+    await expect(transitionCase(case_id, "cancel")).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("resolving a never-dispatched case still moves it to resolved and frees resources (edge-case table)", async () => {
+    const { case_id } = await runFloodCasePipeline(LEMYETHNA_REPORT);
+    await transitionCase(case_id, "resolve"); // straight from 'assessed'
+    const [[u], [s], c] = await Promise.all([
+      sql`select status from rescue_unit where id = 'RB-01'`,
+      sql`select status from shelter where id = 'S-03'`,
+      getFloodCase(case_id),
+    ]);
+    expect(u.status).toBe("available");
+    expect(s.status).toBe("accepting");
+    expect(c?.status).toBe("resolved");
   });
 });
