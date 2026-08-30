@@ -1,3 +1,5 @@
+:- encoding(utf8).   % source holds em-dashes / § — read as UTF-8 regardless of OS locale
+
 :- module(ferrs_rules,
           [ assess/2,                        % +Facts:dict, -Result:dict  (semidet; fails => no guess)
             severity/2,

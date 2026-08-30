@@ -1,3 +1,5 @@
+:- encoding(utf8).
+
 :- module(ferrs_server, [start/1, stop/0, main/0]).
 
 /** <module> FERRS Prolog HTTP service
