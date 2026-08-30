@@ -10,13 +10,17 @@ import { RegionalMap } from "./RegionalMap";
 
 export function OverviewView() {
   const [cases, setCases] = useState<FloodCase[] | null>(null);
+  const [closed, setClosed] = useState<FloodCase[] | null>(null);
   const [townships, setTownships] = useState<Township[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([api.listCases(), api.townships()])
-      .then(([c, t]) => {
-        setCases(c);
+    Promise.all([api.listCases(), api.listCases("resolved,cancelled"), api.townships()])
+      .then(([active, done, t]) => {
+        setCases(active);
+        setClosed(
+          [...done].sort((a, b) => +new Date(b.reported_at) - +new Date(a.reported_at)),
+        );
         setTownships(t);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Could not load cases"));
@@ -27,7 +31,10 @@ export function OverviewView() {
       <p className="rounded-lg border-2 border-sev-severe bg-white p-4 font-semibold">{error}</p>
     );
   }
-  if (!cases || !townships) return <p className="text-muted">Loading…</p>;
+  if (!cases || !closed || !townships) return <p className="text-muted">Loading…</p>;
+
+  const townshipName = (id: string) =>
+    townships.find((x) => x.id === id)?.display_name ?? id;
 
   return (
     <div className="space-y-5">
@@ -72,6 +79,33 @@ export function OverviewView() {
           </ul>
         )}
       </section>
+
+      {closed.length > 0 && (
+        <details className="rounded-xl border border-border bg-surface">
+          <summary className="cursor-pointer list-none p-3 font-bold marker:content-none">
+            Closed cases ({closed.length}) · resolved and cancelled
+          </summary>
+          <ul className="border-t border-border">
+            {closed.map((c) => (
+              <li key={c.case_id} className="border-b border-border last:border-b-0">
+                <Link
+                  href={`/results/${encodeURIComponent(c.case_id)}`}
+                  className="flex items-center justify-between gap-3 p-3"
+                >
+                  <div>
+                    <p className="font-semibold">{townshipName(c.township_id)}</p>
+                    <p className="text-sm text-muted">
+                      {c.case_id} · {CASE_STATUS[c.status].label} ·{" "}
+                      {new Date(c.reported_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {c.severity && <SeverityBadge severity={c.severity} size="sm" />}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }
