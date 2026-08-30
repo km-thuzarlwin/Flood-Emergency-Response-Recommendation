@@ -25,6 +25,12 @@ function createClient(): postgres.Sql {
     max: 10,
     idle_timeout: 20,
     connection: { application_name: "ferrs-web" },
+    // Supabase transaction pooler (port 6543): named prepared statements are not
+    // supported. All FERRS multi-statement work is inside a single sql.begin()
+    // transaction, which the transaction pooler pins to one server connection —
+    // so FOR UPDATE and pg_advisory_xact_lock still behave correctly.
+    prepare: false,
+    ssl: "require",
   });
   if (process.env.NODE_ENV !== "production") globalForDb.sql = client;
   return client;

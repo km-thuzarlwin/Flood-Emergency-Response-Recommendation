@@ -5,53 +5,25 @@ import { useRouter } from "next/navigation";
 import { api, ApiClientError } from "@/lib/api";
 import type { GaugeStation, Township } from "@/lib/schema";
 import type { FloodCaseInput } from "@/lib/validation";
+import {
+  SelectField,
+  ToggleSwitch,
+  Stepper,
+  RadioCards,
+  Segmented,
+  FieldBlock,
+} from "./controls";
 
 /** Qualitative water level → approx % of the station danger mark (doc 6). */
 const WATER_LEVELS = [
-  { key: "well_below", label: "Well below the mark", pct: 0.6 },
-  { key: "near", label: "Near the mark", pct: 0.95 },
-  { key: "above", label: "Above the mark", pct: 1.08 },
-  { key: "well_above", label: "Well above the mark", pct: 1.25 },
+  { value: "well_below", label: "Well below the danger mark", pct: 0.6 },
+  { value: "somewhat_below", label: "A little below the danger mark", pct: 0.85 },
+  { value: "at", label: "Right at the danger mark", pct: 1.0 },
+  { value: "above", label: "Above the danger mark", pct: 1.08 },
+  { value: "well_above", label: "Well above the danger mark", pct: 1.25 },
 ] as const;
 
-type WaterKey = (typeof WATER_LEVELS)[number]["key"];
-
-function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-  columns = 2,
-}: {
-  label: string;
-  value: T | null;
-  options: ReadonlyArray<{ key: T; label: string }>;
-  onChange: (v: T) => void;
-  columns?: number;
-}) {
-  return (
-    <fieldset className="space-y-2">
-      <legend className="font-semibold">{label}</legend>
-      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0,1fr))` }}>
-        {options.map((o) => (
-          <button
-            key={o.key}
-            type="button"
-            aria-pressed={value === o.key}
-            onClick={() => onChange(o.key)}
-            className={`rounded-lg border-2 px-3 py-3 text-left font-semibold transition ${
-              value === o.key
-                ? "border-accent bg-accent text-white"
-                : "border-border bg-surface hover:border-accent"
-            }`}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
+type WaterKey = (typeof WATER_LEVELS)[number]["value"];
 
 export function FloodReportForm() {
   const router = useRouter();
@@ -59,17 +31,17 @@ export function FloodReportForm() {
   const [gauges, setGauges] = useState<GaugeStation[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [townshipId, setTownshipId] = useState("");
-  const [water, setWater] = useState<WaterKey | null>("near");
+  const [townshipId, setTownshipId] = useState<string>("");
+  const [water, setWater] = useState<WaterKey | "">("");
   const [gaugeCm, setGaugeCm] = useState<string>("");
   const [useExactCm, setUseExactCm] = useState(false);
   const [rainDays, setRainDays] = useState<number>(0);
-  const [rainfall, setRainfall] = useState<FloodCaseInput["local_rainfall"] | null>("moderate");
-  const [embankment, setEmbankment] = useState<FloodCaseInput["embankment_status"] | null>("intact");
+  const [rainfall, setRainfall] = useState<FloodCaseInput["local_rainfall"] | null>(null);
+  const [breached, setBreached] = useState(false);
   const [terrain, setTerrain] = useState<FloodCaseInput["terrain"] | null>(null);
-  const [road, setRoad] = useState<FloodCaseInput["road_status"] | null>("open");
-  const [vulnerable, setVulnerable] = useState<boolean | null>(null);
-  const [injured, setInjured] = useState<boolean | null>(null);
+  const [roadsCut, setRoadsCut] = useState(false);
+  const [vulnerable, setVulnerable] = useState(false);
+  const [injured, setInjured] = useState(false);
   const [population, setPopulation] = useState<string>("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -89,26 +61,21 @@ export function FloodReportForm() {
     if (!township?.gauge_station_id || !gauges) return null;
     return gauges.find((g) => g.id === township.gauge_station_id)?.danger_level_cm ?? null;
   }, [township, gauges]);
-
   const hasGauge = danger !== null;
 
   const gaugeReadingCm = useMemo(() => {
-    if (!hasGauge) return 0; // coastal / no station — API still needs a value
+    if (!hasGauge) return 0;
     if (useExactCm) return Number(gaugeCm) || 0;
-    const lvl = WATER_LEVELS.find((w) => w.key === water);
+    const lvl = WATER_LEVELS.find((w) => w.value === water);
     return lvl ? Math.round(danger! * lvl.pct) : 0;
   }, [hasGauge, useExactCm, gaugeCm, water, danger]);
 
   const ready =
-    townshipId &&
-    rainfall &&
-    embankment &&
-    terrain &&
-    road &&
-    vulnerable !== null &&
-    injured !== null &&
+    !!townshipId &&
+    !!rainfall &&
+    !!terrain &&
     population !== "" &&
-    (hasGauge ? (useExactCm ? gaugeCm !== "" : water !== null) : true);
+    (hasGauge ? (useExactCm ? gaugeCm !== "" : water !== "") : true);
 
   async function submit() {
     if (!ready) return;
@@ -119,24 +86,22 @@ export function FloodReportForm() {
       gauge_reading_cm: gaugeReadingCm,
       upstream_heavy_rain_days: rainDays,
       local_rainfall: rainfall!,
-      embankment_status: embankment!,
+      embankment_status: breached ? "breached" : "intact",
       terrain: terrain!,
-      road_status: road!,
-      vulnerable_present: vulnerable!,
-      injured_survivors: injured!,
+      road_status: roadsCut ? "impassable" : "open",
+      vulnerable_present: vulnerable,
+      injured_survivors: injured,
       affected_population: Number(population) || 0,
     };
     try {
       const res = await api.submitReport(input);
       router.push(`/results/${encodeURIComponent(res.case_id)}`);
     } catch (e) {
-      const msg =
-        e instanceof ApiClientError
+      setSubmitError(
+        e instanceof ApiClientError || e instanceof Error
           ? e.message
-          : e instanceof Error
-            ? e.message
-            : "Something went wrong submitting the report.";
-      setSubmitError(msg);
+          : "Something went wrong submitting the report.",
+      );
       setSubmitting(false);
     }
   }
@@ -152,31 +117,23 @@ export function FloodReportForm() {
 
   return (
     <form
-      className="space-y-6"
+      className="space-y-7"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
     >
-      <div className="space-y-2">
-        <label htmlFor="township" className="font-semibold">
-          Which township?
-        </label>
-        <select
-          id="township"
-          value={townshipId}
-          onChange={(e) => setTownshipId(e.target.value)}
-          className="w-full rounded-lg border-2 border-border bg-surface px-3 py-3 font-semibold"
-        >
-          <option value="">Choose a township…</option>
-          {townships.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.display_name}
-              {t.is_base ? " (base)" : ""}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* dropdown */}
+      <SelectField
+        label="Which township?"
+        value={townshipId}
+        placeholder="Choose a township…"
+        options={townships.map((t) => ({
+          value: t.id,
+          label: t.display_name + (t.is_base ? " (base)" : ""),
+        }))}
+        onChange={setTownshipId}
+      />
 
       {township && !hasGauge && (
         <p className="rounded-lg bg-surface-2 p-3 text-sm text-muted">
@@ -186,122 +143,103 @@ export function FloodReportForm() {
         </p>
       )}
 
+      {/* dropdown (water) with a typed-number fallback */}
       {township && hasGauge && (
-        <div className="space-y-2">
+        <div>
           {!useExactCm ? (
-            <Segmented
-              label="How high is the river?"
+            <SelectField
+              label="How high is the river here?"
+              hint={`The danger mark for this township's gauge is ${danger} cm.`}
               value={water}
+              placeholder="Choose one…"
+              options={WATER_LEVELS.map((w) => ({ value: w.value, label: w.label }))}
               onChange={setWater}
-              options={WATER_LEVELS.map((w) => ({ key: w.key, label: w.label }))}
-              columns={2}
             />
           ) : (
-            <div className="space-y-2">
-              <label htmlFor="cm" className="font-semibold">
-                Gauge reading (cm) — danger mark is {danger} cm
-              </label>
+            <FieldBlock
+              label="Gauge reading (cm)"
+              hint={`The danger mark for this township's gauge is ${danger} cm.`}
+            >
               <input
-                id="cm"
                 type="number"
                 min={0}
                 value={gaugeCm}
                 onChange={(e) => setGaugeCm(e.target.value)}
                 className="w-full rounded-lg border-2 border-border bg-surface px-3 py-3 font-semibold"
               />
-            </div>
+            </FieldBlock>
           )}
           <button
             type="button"
             onClick={() => setUseExactCm((v) => !v)}
-            className="text-sm font-semibold text-accent underline"
+            className="mt-2 text-sm font-semibold text-accent underline"
           >
             {useExactCm ? "Use the simple choice instead" : "I have an exact gauge reading in cm"}
           </button>
         </div>
       )}
 
-      <Segmented
-        label="Is the embankment holding?"
-        value={embankment}
-        onChange={setEmbankment}
-        options={[
-          { key: "intact", label: "Intact" },
-          { key: "breached", label: "Breached" },
-        ]}
+      {/* stepper */}
+      <Stepper
+        label="Heavy rain upstream"
+        hint="Consecutive days of heavy rain in the catchment upstream."
+        value={rainDays}
+        min={0}
+        max={7}
+        onChange={setRainDays}
+        format={(n) => (n === 0 ? "None" : n === 1 ? "1 day" : `${n} days`)}
       />
 
-      <Segmented
-        label="What is the land like here?"
-        value={terrain}
-        onChange={setTerrain}
-        options={[
-          { key: "low_lying", label: "Low-lying" },
-          { key: "elevated", label: "Higher ground" },
-        ]}
-      />
-
+      {/* segmented (short options) */}
       <Segmented
         label="Local rainfall right now"
         value={rainfall}
+        options={[
+          { value: "light", label: "Light" },
+          { value: "moderate", label: "Moderate" },
+          { value: "heavy", label: "Heavy" },
+          { value: "very_heavy", label: "Very heavy" },
+        ]}
         onChange={setRainfall}
-        options={[
-          { key: "light", label: "Light" },
-          { key: "moderate", label: "Moderate" },
-          { key: "heavy", label: "Heavy" },
-          { key: "very_heavy", label: "Very heavy" },
-        ]}
       />
 
-      <Segmented
-        label="Heavy rain upstream — how many days?"
-        value={String(rainDays) as "0" | "1" | "2" | "3"}
-        onChange={(v) => setRainDays(Number(v))}
+      {/* radio list */}
+      <RadioCards
+        label="What is the land like where people are?"
+        value={terrain}
         options={[
-          { key: "0", label: "None" },
-          { key: "1", label: "1 day" },
-          { key: "2", label: "2 days" },
-          { key: "3", label: "3+ days" },
+          { value: "low_lying", label: "Low-lying", hint: "Floods first, water sits longer" },
+          { value: "elevated", label: "Higher ground", hint: "Naturally drains, floods later" },
         ]}
-        columns={4}
+        onChange={setTerrain}
       />
 
-      <Segmented
-        label="Can vehicles reach this place by road?"
-        value={road}
-        onChange={setRoad}
-        options={[
-          { key: "open", label: "Roads open" },
-          { key: "impassable", label: "Roads cut off" },
-        ]}
-      />
+      {/* toggle switches */}
+      <div className="space-y-3">
+        <ToggleSwitch
+          label="Embankment breached"
+          hint="A break in the embankment — turn on only if you have seen or been told of one."
+          checked={breached}
+          onChange={setBreached}
+          danger
+        />
+        <ToggleSwitch
+          label="Roads cut off"
+          hint="Vehicles can no longer reach this place by road."
+          checked={roadsCut}
+          onChange={setRoadsCut}
+        />
+        <ToggleSwitch
+          label="Elderly, disabled, or very young people at risk"
+          checked={vulnerable}
+          onChange={setVulnerable}
+        />
+        <ToggleSwitch label="Someone is injured" checked={injured} onChange={setInjured} />
+      </div>
 
-      <Segmented
-        label="Are there elderly, disabled, or very young people at risk?"
-        value={vulnerable === null ? null : vulnerable ? "yes" : "no"}
-        onChange={(v) => setVulnerable(v === "yes")}
-        options={[
-          { key: "yes", label: "Yes" },
-          { key: "no", label: "No" },
-        ]}
-      />
-
-      <Segmented
-        label="Anyone injured?"
-        value={injured === null ? null : injured ? "yes" : "no"}
-        onChange={(v) => setInjured(v === "yes")}
-        options={[
-          { key: "yes", label: "Yes" },
-          { key: "no", label: "No" },
-        ]}
-      />
-
-      <div className="space-y-2">
-        <label htmlFor="pop" className="font-semibold">
-          Roughly how many people are affected?
-        </label>
+      {/* number with quick picks */}
+      <FieldBlock label="Roughly how many people are affected?">
         <input
-          id="pop"
           type="number"
           min={0}
           inputMode="numeric"
@@ -310,7 +248,19 @@ export function FloodReportForm() {
           placeholder="e.g. 500"
           className="w-full rounded-lg border-2 border-border bg-surface px-3 py-3 font-semibold"
         />
-      </div>
+        <div className="flex flex-wrap gap-2">
+          {["50", "500", "5000", "40000"].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setPopulation(n)}
+              className="rounded-full border-2 border-border bg-surface px-3 py-1 text-sm font-semibold"
+            >
+              {Number(n).toLocaleString()}
+            </button>
+          ))}
+        </div>
+      </FieldBlock>
 
       {submitError && (
         <p className="rounded-lg border-2 border-sev-severe bg-white p-3 font-semibold text-sev-severe">

@@ -82,8 +82,8 @@ export default function MapView({
     <div style={{ height }} className="overflow-hidden rounded-xl border border-border">
       <MapContainer center={center} zoom={9} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; OpenStreetMap &copy; CARTO'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; OpenStreetMap contributors'
           maxZoom={19}
         />
         {routes.map((r, i) => (

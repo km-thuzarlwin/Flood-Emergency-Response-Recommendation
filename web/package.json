@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prolog": "swipl ../prolog/serve.pl",
-    "test:integration": "vitest run src/lib/pipeline.integration.test.ts"
+    "test:integration": "vitest run src/lib/pipeline.integration.test.ts",
+    "dev:all": "concurrently -n prolog,web -c blue,green \"npm:prolog\" \"npm:dev\""
   },
   "dependencies": {
     "leaflet": "^1.9.4",
@@ -28,6 +29,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^10.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
