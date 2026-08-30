@@ -15,28 +15,45 @@ const ACTION: Record<HeaderContext, Action | null> = {
   overview: { href: "/report", label: "File a report", kind: "primary" },
 };
 
-/** AQUA mark — a droplet cresting a wave, in the brand azure. No image assets. */
+/**
+ * AQUA mark — a water droplet holding a curling wave, with splash flicks.
+ * Original artwork; inline SVG, no image assets. Blue vertical gradient.
+ */
 export function AquaMark({ className = "" }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 32 32"
+      viewBox="0 0 64 64"
       className={className}
       role="img"
       aria-label="AQUA"
       fill="none"
     >
-      <rect width="32" height="32" rx="9" fill="var(--accent-strong)" />
+      <defs>
+        <linearGradient id="aqua-mark-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#38bdf8" />
+          <stop offset="1" stopColor="#0369a1" />
+        </linearGradient>
+        <clipPath id="aqua-mark-drop">
+          <path d="M32 3c9 13 20 25 20 35a20 20 0 1 1-40 0C12 28 23 16 32 3Z" />
+        </clipPath>
+      </defs>
+
+      {/* droplet body */}
       <path
-        d="M16 6c3 3.6 5.2 6.6 5.2 9.4A5.2 5.2 0 0 1 16 20.6a5.2 5.2 0 0 1-5.2-5.2C10.8 12.6 13 9.6 16 6Z"
-        fill="#fff"
+        d="M32 3c9 13 20 25 20 35a20 20 0 1 1-40 0C12 28 23 16 32 3Z"
+        fill="url(#aqua-mark-grad)"
       />
-      <path
-        d="M6 22.5c1.7 0 1.7 1.6 3.3 1.6 1.7 0 1.7-1.6 3.4-1.6 1.6 0 1.6 1.6 3.3 1.6s1.7-1.6 3.3-1.6c1.7 0 1.7 1.6 3.4 1.6 1.6 0 1.6-1.6 3.3-1.6"
-        stroke="#fff"
-        strokeWidth="2"
-        strokeLinecap="round"
-        opacity="0.9"
-      />
+
+      {/* breaking wave with a spiral curl + splash flicks, carved white */}
+      <g clipPath="url(#aqua-mark-drop)">
+        <path
+          d="M9 44C9 30 22 22 35 27c8 3 11 12 6 19-4 6-13 7-18 2-4-4-3-11 3-13 4-2 9 1 9 6 0 3-3 6-6 5 3 0 4-3 3-5-2-3-7-2-8 2-2 6 3 12 10 12 9 0 16-8 14-17-2-8-11-13-20-10C18 26 12 35 13 45c1 6 5 10 11 12-8-1-15-6-15-13Z"
+          fill="#fff"
+        />
+        <circle cx="25" cy="17" r="2.6" fill="#fff" />
+        <circle cx="20" cy="24" r="1.7" fill="#fff" />
+        <circle cx="30" cy="11" r="1.7" fill="#fff" />
+      </g>
     </svg>
   );
 }
