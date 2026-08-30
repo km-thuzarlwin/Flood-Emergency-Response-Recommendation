@@ -40,34 +40,36 @@ export async function assignAndReserve(args: AssignmentArgs): Promise<Assignment
   return sql.begin(async (tx): Promise<AssignmentResult> => {
     await tx`select pg_advisory_xact_lock(${CASE_CREATION_LOCK})`;
 
-    const units = await tx<UnitRow[]>`
-      select id, home_township_id, status, mobility, medical_support from rescue_unit
-    `;
-    const shelters = await tx<ShelterRow[]>`
-      select id, display_name, township_id, status, capability from shelter
-    `;
+    // both fleet + shelter lists in one pipelined round-trip
+    const [units, shelters] = await Promise.all([
+      tx<UnitRow[]>`select id, home_township_id, status, mobility, medical_support from rescue_unit`,
+      tx<ShelterRow[]>`select id, display_name, township_id, status, capability from shelter`,
+    ]);
 
     const unitSel = selectUnit(units, assessment.required_capabilities, incident);
     const shelterSel = selectShelter(shelters, assessment.required_shelter_capabilities, incident);
 
+    // check-and-reserve atomically in a single statement each: the conditional
+    // UPDATE takes the row lock and flips the status, and returns 0 rows if the
+    // resource was taken between selection and this point (doc 2 §11 / NFR-3).
     if (unitSel.id) {
-      const [u] = await tx<{ status: string }[]>`
-        select status from rescue_unit where id = ${unitSel.id} for update
+      const claimed = await tx`
+        update rescue_unit set status = 'reserved'
+        where id = ${unitSel.id} and status = 'available' returning id
       `;
-      if (!u || u.status !== "available") {
+      if (claimed.length === 0) {
         throw new Error(`invariant: selected unit ${unitSel.id} not available under lock`);
       }
-      await tx`update rescue_unit set status = 'reserved' where id = ${unitSel.id}`;
     }
 
     if (shelterSel.id) {
-      const [s] = await tx<{ status: string }[]>`
-        select status from shelter where id = ${shelterSel.id} for update
+      const claimed = await tx`
+        update shelter set status = 'reserved_full'
+        where id = ${shelterSel.id} and status = 'accepting' returning id
       `;
-      if (!s || s.status !== "accepting") {
+      if (claimed.length === 0) {
         throw new Error(`invariant: selected shelter ${shelterSel.id} not accepting under lock`);
       }
-      await tx`update shelter set status = 'reserved_full' where id = ${shelterSel.id}`;
     }
 
     // FLD-YYYYMMDD-NNN, server (UTC) date

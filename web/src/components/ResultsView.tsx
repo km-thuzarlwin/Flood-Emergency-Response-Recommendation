@@ -17,8 +17,19 @@ export function ResultsView({ caseId }: { caseId: string }) {
   const load = useCallback(() => {
     api
       .caseView(caseId)
-      .then(setView)
-      .catch((e) => setError(e instanceof Error ? e.message : "Could not load this case"));
+      .then((v) => {
+        setView(v);
+        setError(null);
+      })
+      .catch((e) => {
+        if (e instanceof ApiClientError && e.status === 404) {
+          setError(`Case ${caseId} was not found — it may have been resolved, cancelled, or cleared.`);
+        } else if (e instanceof ApiClientError && e.status >= 500) {
+          setError("Couldn't reach the database just now. Give it a moment and retry.");
+        } else {
+          setError(e instanceof Error ? e.message : "Could not load this case.");
+        }
+      });
   }, [caseId]);
 
   useEffect(load, [load]);
@@ -38,7 +49,18 @@ export function ResultsView({ caseId }: { caseId: string }) {
 
   if (error) {
     return (
-      <p className="rounded-lg border-2 border-sev-severe bg-white p-4 font-semibold">{error}</p>
+      <div className="rounded-lg border-2 border-sev-severe bg-white p-4">
+        <p className="font-semibold">{error}</p>
+        <button
+          onClick={() => {
+            setError(null);
+            load();
+          }}
+          className="mt-3 rounded-lg border-2 border-border px-4 py-2 text-sm font-bold"
+        >
+          Retry
+        </button>
+      </div>
     );
   }
   if (!view) return <p className="text-muted">Loading recommendation…</p>;

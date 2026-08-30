@@ -22,8 +22,11 @@ const globalForDb = globalThis as unknown as { sql?: postgres.Sql };
 
 function createClient(): postgres.Sql {
   const client = postgres(env.DATABASE_URL, {
-    max: 10,
-    idle_timeout: 20,
+    max: 6,
+    // keep connections warm between clicks (the pooler is a region away); a
+    // connection the pooler drops server-side is retried in repo.ts
+    idle_timeout: 0,
+    connect_timeout: 15,
     connection: { application_name: "ferrs-web" },
     // Supabase transaction pooler (port 6543): named prepared statements are not
     // supported. All FERRS multi-statement work is inside a single sql.begin()
@@ -34,6 +37,16 @@ function createClient(): postgres.Sql {
   });
   if (process.env.NODE_ENV !== "production") globalForDb.sql = client;
   return client;
+}
+
+/**
+ * Open a connection now (fire-and-forget) so the first real request doesn't pay
+ * the ~6s cold handshake to the region-away pooler. Called from instrumentation.ts.
+ */
+export function warmup(): void {
+  void (getClient() as unknown as (s: TemplateStringsArray) => Promise<unknown>)`select 1`.catch(
+    () => {},
+  );
 }
 
 function getClient(): postgres.Sql {
